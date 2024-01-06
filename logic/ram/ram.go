@@ -1,18 +1,21 @@
 package ram
 
-import "fmt"
+import (
+	"context"
+	"fmt"
+)
 
 type Ram interface {
-	Del(key string) error
+	Del(ctx context.Context, key string) error
 
-	GetBlockNumber() uint64
-	SetBlockNumber(value uint64) error
+	GetBlockNumber(ctx context.Context) uint64
+	SetBlockNumber(ctx context.Context, value uint64) error
 
-	GetTop(block uint64) Top
-	SetTop(block uint64, top Top) error
+	GetTop(ctx context.Context, block uint64) Top
+	SetTop(ctx context.Context, block uint64, top Top) error
 
-	GetERC20() ListERC20
-	SetERC20(value ListERC20) error
+	GetERC20(ctx context.Context) ListERC20
+	SetERC20(ctx context.Context, value ListERC20) error
 }
 
 func Init(typeRam TypeRAM, ramAddr string) Ram {

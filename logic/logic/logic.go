@@ -1,6 +1,7 @@
 package logic
 
 import (
+	"context"
 	"logic/async"
 	"logic/ram"
 )
@@ -19,5 +20,10 @@ func Init(asyncAddr, name, ramAddr string) *Logic {
 }
 
 func (l *Logic) Run() {
-	l.async.Receive()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	if err := l.async.Receive(ctx); err != nil {
+		panic(err)
+	}
 }

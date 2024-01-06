@@ -61,7 +61,10 @@ var dockerCmd = &cobra.Command{
 			dbUsername,
 			dbPassword,
 		)
-		eth.Run()
+
+		if err := eth.Run(); err != nil {
+			panic(err)
+		}
 	},
 }
 

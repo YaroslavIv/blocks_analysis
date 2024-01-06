@@ -3,7 +3,7 @@ package node
 import "fmt"
 
 type Node interface {
-	Run()
+	Run() error
 }
 
 func Init(typeNode TypeNode, rawurl string, maxCountBlock uint64, nameTable, ramAddr, dbAddr, dbDatabase, dbUsername, dbPassword string) Node {

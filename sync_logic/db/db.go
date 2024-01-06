@@ -1,16 +1,19 @@
 package db
 
-import "fmt"
+import (
+	"context"
+	"fmt"
+)
 
 type DB interface {
 	Close()
 	Reconnect()
 
-	Drop()
+	Drop(ctx context.Context)
 
-	InsertRows(rows ListRow)
+	InsertRows(ctx context.Context, rows ListRow)
 
-	Get(startBlock uint64) ListRow
+	Get(ctx context.Context, startBlock uint64) ListRow
 }
 
 func Init(typeDB TypeDB, nameTable, addr, database, username, password string) DB {

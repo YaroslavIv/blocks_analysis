@@ -12,6 +12,8 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+      logic:
+        condition: service_started
   
   logic:
     build: 
@@ -24,6 +26,8 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+      sync_logic:
+        condition: service_started
     
 
   rabbitmq:
@@ -49,14 +53,17 @@ services:
       NAME_TABLE: "eth"
       MAX_COUNT_BLOCK: "100"
 
-      DB_ADDR: "0.0.0.0:9000"
+      DB_ADDR: "localhost:9000"
       DB_DATABASE: "default"
       DB_USERNAME: "default"
       DB_PASSWORD: ""
 
     depends_on:
-      - clickhouse
-      - redis
+      clickhouse:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
     network_mode: "host"
 
   clickhouse:
@@ -64,6 +71,11 @@ services:
     environment:
       - ALLOW_EMPTY_PASSWORD=yes
     network_mode: "host"
+    healthcheck:
+      test: /opt/bitnami/clickhouse/bin/clickhouse-client clickhouse://localhost:9000 --query "SELECT 1"
+      interval: 5s
+      timeout: 3s
+      retries: 5
   
   redis:
     image: redis:latest

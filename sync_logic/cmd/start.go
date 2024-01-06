@@ -58,7 +58,10 @@ var startCmd = &cobra.Command{
 			dbUsername,
 			dbPassword,
 		)
-		eth.Run()
+
+		if err := eth.Run(); err != nil {
+			panic(err)
+		}
 	},
 }
 
@@ -70,7 +73,7 @@ func init() {
 	startCmd.Flags().StringP("name-table", "n", "eth", "name table in SQL")
 	startCmd.Flags().StringP("ram-addr", "r", "localhost:6379", "ram addr")
 
-	startCmd.Flags().String("db-addr", "0.0.0.0:9000", "database addr")
+	startCmd.Flags().String("db-addr", "localhost:9000", "database addr")
 	startCmd.Flags().String("db-database", "default", "database database")
 	startCmd.Flags().String("db-username", "default", "database username")
 	startCmd.Flags().String("db-password", "", "database password")

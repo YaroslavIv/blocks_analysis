@@ -1,12 +1,13 @@
 package async
 
 import (
+	"context"
 	"fmt"
 	"logic/ram"
 )
 
 type Async interface {
-	Receive()
+	Receive(ctx context.Context) error
 }
 
 func Init(typeAsync TypeAsync, url, name string, ram ram.Ram) Async {

@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
@@ -15,8 +16,8 @@ type ClickHouse struct {
 
 func InitClickHouse(nameTable, addr, database, username, password string) *ClickHouse {
 	var (
-		ctx       = context.Background()
-		conn, err = clickhouse.Open(&clickhouse.Options{
+		ctx, cancel = context.WithTimeout(context.Background(), time.Second*10)
+		conn, err   = clickhouse.Open(&clickhouse.Options{
 			Addr: []string{addr},
 			Auth: clickhouse.Auth{
 				Database: database,
@@ -25,6 +26,8 @@ func InitClickHouse(nameTable, addr, database, username, password string) *Click
 			},
 		})
 	)
+
+	defer cancel()
 
 	if err != nil {
 		panic(err)
@@ -39,7 +42,7 @@ func InitClickHouse(nameTable, addr, database, username, password string) *Click
 	}
 
 	cl := &ClickHouse{conn: conn, nameTable: nameTable}
-	cl.createTable()
+	cl.createTable(ctx)
 	return cl
 }
 
@@ -51,8 +54,8 @@ func (db *ClickHouse) Close() {
 
 func (db *ClickHouse) Reconnect() {}
 
-func (db *ClickHouse) createTable() {
-	out, err := db.conn.Query(context.Background(), fmt.Sprintf("SHOW TABLES FROM default LIKE '%s'", db.nameTable))
+func (db *ClickHouse) createTable(ctx context.Context) {
+	out, err := db.conn.Query(ctx, fmt.Sprintf("SHOW TABLES FROM default LIKE '%s'", db.nameTable))
 	if err != nil {
 		panic(err)
 	}
@@ -68,19 +71,19 @@ func (db *ClickHouse) createTable() {
 		AddrTo String NOT NULL
 	) engine = MergeTree() ORDER BY tuple();`, db.nameTable)
 
-	if err := db.conn.Exec(context.Background(), command); err != nil {
+	if err := db.conn.Exec(ctx, command); err != nil {
 		panic(err)
 	}
 }
 
-func (db *ClickHouse) Drop() {
-	if err := db.conn.Exec(context.Background(), fmt.Sprintf("DROP TABLE %s", db.nameTable)); err != nil {
+func (db *ClickHouse) Drop(ctx context.Context) {
+	if err := db.conn.Exec(ctx, fmt.Sprintf("DROP TABLE %s", db.nameTable)); err != nil {
 		panic(err)
 	}
 }
 
-func (db *ClickHouse) InsertRows(rows ListRow) {
-	batch, err := db.conn.PrepareBatch(context.Background(), fmt.Sprintf("INSERT INTO %s", db.nameTable))
+func (db *ClickHouse) InsertRows(ctx context.Context, rows ListRow) {
+	batch, err := db.conn.PrepareBatch(ctx, fmt.Sprintf("INSERT INTO %s", db.nameTable))
 	if err != nil {
 		panic(err)
 	}
@@ -96,10 +99,10 @@ func (db *ClickHouse) InsertRows(rows ListRow) {
 	}
 }
 
-func (db *ClickHouse) Get(startBlock uint64) ListRow {
+func (db *ClickHouse) Get(ctx context.Context, startBlock uint64) ListRow {
 	var rows ListRow
 
-	out, err := db.conn.Query(context.Background(), fmt.Sprintf("SELECT * from %s WHERE Block >= %d;", db.nameTable, startBlock))
+	out, err := db.conn.Query(ctx, fmt.Sprintf("SELECT * from %s WHERE Block >= %d;", db.nameTable, startBlock))
 	if err != nil {
 		panic(err)
 	}

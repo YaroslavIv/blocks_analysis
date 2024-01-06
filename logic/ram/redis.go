@@ -22,45 +22,45 @@ func InitRedis(ramAddr string) *Redis {
 	return &Redis{client: client}
 }
 
-func (r *Redis) Del(key string) error {
-	return r.client.Del(context.Background(), key).Err()
+func (r *Redis) Del(ctx context.Context, key string) error {
+	return r.client.Del(ctx, key).Err()
 }
 
-func (r *Redis) GetBlockNumber() uint64 {
+func (r *Redis) GetBlockNumber(ctx context.Context) uint64 {
 	var out uint64
-	r.get("BlockNumber", &out)
+	r.get(ctx, "BlockNumber", &out)
 
 	return out
 }
 
-func (r *Redis) SetBlockNumber(value uint64) error {
-	return r.set("BlockNumber", value)
+func (r *Redis) SetBlockNumber(ctx context.Context, value uint64) error {
+	return r.set(ctx, "BlockNumber", value)
 }
 
-func (r *Redis) GetTop(block uint64) Top {
+func (r *Redis) GetTop(ctx context.Context, block uint64) Top {
 	var out Top
-	r.get(fmt.Sprintf("Top%d", block), &out)
+	r.get(ctx, fmt.Sprintf("Top%d", block), &out)
 
 	return out
 }
 
-func (r *Redis) SetTop(block uint64, value Top) error {
-	return r.set(fmt.Sprintf("Top%d", block), value)
+func (r *Redis) SetTop(ctx context.Context, block uint64, value Top) error {
+	return r.set(ctx, fmt.Sprintf("Top%d", block), value)
 }
 
-func (r *Redis) GetERC20() ListERC20 {
+func (r *Redis) GetERC20(ctx context.Context) ListERC20 {
 	var out ListERC20
-	r.get("ERC20", &out)
+	r.get(ctx, "ERC20", &out)
 
 	return out
 }
 
-func (r *Redis) SetERC20(value ListERC20) error {
-	return r.set("ERC20", value)
+func (r *Redis) SetERC20(ctx context.Context, value ListERC20) error {
+	return r.set(ctx, "ERC20", value)
 }
 
-func (r *Redis) get(key string, value interface{}) {
-	data, err := r.client.Get(context.Background(), key).Bytes()
+func (r *Redis) get(ctx context.Context, key string, value interface{}) {
+	data, err := r.client.Get(ctx, key).Bytes()
 	if err != nil {
 		panic(err)
 	}
@@ -70,10 +70,10 @@ func (r *Redis) get(key string, value interface{}) {
 	}
 }
 
-func (r *Redis) set(key string, value interface{}) error {
+func (r *Redis) set(ctx context.Context, key string, value interface{}) error {
 	data, err := json.Marshal(value)
 	if err != nil {
 		panic(err)
 	}
-	return r.client.Set(context.Background(), key, data, 0).Err()
+	return r.client.Set(ctx, key, data, 0).Err()
 }

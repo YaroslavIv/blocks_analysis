@@ -52,30 +52,35 @@ func (eth *Eth) subscribe() {
 	eth.sub = sub
 }
 
-func (eth *Eth) Run() {
+func (eth *Eth) Run() error {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	for {
 		select {
 		case err := <-eth.sub.Err():
-			panic(err)
+			return err
 		case header := <-eth.header:
 			hash := header.Hash()
-			block := eth.BlockByHash(hash)
+			block := eth.BlockByHash(ctx, hash)
 			number := block.NumberU64()
 
 			rowsNew := eth.checker.Check(number, block.Transactions())
-			rowsOld := eth.db.Get(number - eth.maxCountBlock + 1)
+			rowsOld := eth.db.Get(ctx, number-eth.maxCountBlock+1)
 			top := getTopFive(rowsNew, rowsOld)
 
-			eth.ram.SetTop(number, top)
-			eth.ram.SetBlockNumber(number)
-			eth.db.InsertRows(rowsNew)
+			eth.ram.SetTop(ctx, number, top)
+			eth.ram.SetBlockNumber(ctx, number)
+			eth.db.InsertRows(ctx, rowsNew)
+		case <-ctx.Done():
+			return ctx.Err()
 		}
 	}
 }
 
-func (eth *Eth) BlockByHash(hash common.Hash) *types.Block {
+func (eth *Eth) BlockByHash(ctx context.Context, hash common.Hash) *types.Block {
 	for {
-		block, err := eth.client.BlockByHash(context.Background(), hash)
+		block, err := eth.client.BlockByHash(ctx, hash)
 		if err != nil {
 			fmt.Printf("Error: %s\n", err)
 			time.Sleep(time.Millisecond * 100)

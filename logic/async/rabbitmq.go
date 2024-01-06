@@ -65,17 +65,17 @@ func InitRabbitMQ(url, name string, ram ram.Ram) *RabbitMQ {
 
 	return r
 }
-func (a *RabbitMQ) Receive() {
+func (a *RabbitMQ) Receive(ctx context.Context) error {
 	for {
 		select {
 		case msg := <-a.msgs:
 
-			data, err := json.Marshal(a.ram.GetTop(a.ram.GetBlockNumber()))
+			data, err := json.Marshal(a.ram.GetTop(ctx, a.ram.GetBlockNumber(ctx)))
 			if err != nil {
-				panic(err)
+				return err
 			}
 			err = a.ch.PublishWithContext(
-				context.Background(),
+				ctx,
 				"",          // exchange
 				msg.ReplyTo, // routing key
 				false,       //
@@ -86,8 +86,10 @@ func (a *RabbitMQ) Receive() {
 					Body:          data,
 				})
 			if err != nil {
-				panic(err)
+				return err
 			}
+		case <-ctx.Done():
+			return ctx.Err()
 		}
 	}
 }
