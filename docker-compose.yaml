@@ -1,0 +1,70 @@
+version: '3'
+
+services:
+  client:
+    build: 
+      context: ./client
+    network_mode: "host"
+    environment:
+      ASYNC_ADDR: "amqp://guest:guest@localhost:5672/"
+      ASYNC_NAME: "top"
+      GIN_ADDR: "localhost:8080"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+  
+  logic:
+    build: 
+      context: ./logic
+    network_mode: "host"
+    environment:
+      ASYNC_ADDR: "amqp://guest:guest@localhost:5672/"
+      ASYNC_NAME: "top"
+      RAM_ADDR: "localhost:6379"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    
+
+  rabbitmq:
+    image: "rabbitmq:3-management"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    
+    healthcheck:
+      test: "/opt/rabbitmq/sbin/rabbitmqctl status"
+      interval: 2s
+      timeout: 30s
+      retries: 15
+    network_mode: "host"
+  
+  sync_logic:
+    build: 
+      context: ./sync_logic
+    environment:
+      WSS: "<WSS GET_BLOCK>"
+      RAM_ADDR: "localhost:6379"
+
+      NAME_TABLE: "eth"
+      MAX_COUNT_BLOCK: "100"
+
+      DB_ADDR: "0.0.0.0:9000"
+      DB_DATABASE: "default"
+      DB_USERNAME: "default"
+      DB_PASSWORD: ""
+
+    depends_on:
+      - clickhouse
+      - redis
+    network_mode: "host"
+
+  clickhouse:
+    image: bitnami/clickhouse:latest
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+    network_mode: "host"
+  
+  redis:
+    image: redis:latest
+    network_mode: "host"
